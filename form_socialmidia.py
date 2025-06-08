@@ -129,35 +129,24 @@ class PDF(FPDF):
 def gerar_pdf(dados, nome_arquivo, logo_file):
     pdf = PDF()
     pdf.add_page()
-
-    # Fundo claro para facilitar leitura
-    pdf.set_fill_color(245, 245, 245)  # #F5F5F5
-    pdf.rect(0, 0, 210, 297, 'F')  # A4 em mm
-
-    # Logo no canto superior direito
-    if logo_file:
-        if isinstance(logo_file, BytesIO):
-            with open("temp_logo_for_pdf.png", "wb") as f:
-                f.write(logo_file.getbuffer())
-            logo_path = "temp_logo_for_pdf.png"
-        else:
-            logo_path = logo_file
-
-        pdf.image(logo_path, x=160, y=10, w=35)
-        pdf.set_y(50)
-    else:
-        pdf.set_y(20)
-
-    # Título centralizado
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(0, 10, "Informações do Cliente - Social Mídia", ln=True, align="C")
     pdf.ln(10)
 
-    # Dados
-    pdf.set_font("Arial", '', 12)
+    if logo_file:
+        if isinstance(logo_file, BytesIO):
+            with open("temp_logo_for_pdf.png", "wb") as f:
+                f.write(logo_file.getbuffer())
+            pdf.image("temp_logo_for_pdf.png", x=10, y=20, w=40)
+        else:
+            pdf.image(logo_file, x=10, y=20, w=40)
+        pdf.ln(45)
+    else:
+        pdf.ln(10)
+
+    pdf.set_font("Arial", 'B', 12)
     for chave, valor in dados.items():
         if chave == "Cores da paleta" and valor:
-            pdf.set_font("Arial", 'B', 12)
             pdf.cell(0, 10, f"{chave}:", ln=True)
             x_start = pdf.get_x()
             y_start = pdf.get_y()
@@ -170,7 +159,6 @@ def gerar_pdf(dados, nome_arquivo, logo_file):
             pdf.set_font("Arial", '', 12)
             pdf.multi_cell(0, 8, f"{chave}: {valor}")
             pdf.ln(1)
-
     pdf.output(nome_arquivo)
 
 # ---- ENVIO DO FORMULÁRIO ----
@@ -209,4 +197,3 @@ if st.button("Enviar formulário"):
         st.success("✅ Formulário enviado e PDF gerado com sucesso!")
         with open(nome_pdf, "rb") as file:
             st.download_button("📄 Baixar PDF agora", data=file, file_name=nome_pdf, mime="application/pdf")
-
