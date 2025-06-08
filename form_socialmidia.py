@@ -3,9 +3,30 @@ import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
 from io import BytesIO
+from PIL import Image
+import base64
 
 # ---- CONFIGURAÇÃO DA PÁGINA ----
 st.set_page_config(page_title="Formulário Social Mídia", layout="centered")
+
+# ---- FUNDO PERSONALIZADO ----
+def set_background(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded = base64.b64encode(image_file.read()).decode()
+    css = f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{encoded}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+# Defina o caminho para sua imagem de fundo
+set_background("vss_fundo.png")
 
 st.title("📱 Formulário de Início - Social Mídia")
 st.write("Preencha os dados abaixo para começarmos a criar conteúdos incríveis para suas redes!")
@@ -32,8 +53,6 @@ if tem_paleta == "Sim":
     paleta_cliente = st.text_input("Qual a sua paleta? (Digite os códigos HEX separados por vírgula ou nomes)")
 else:
     st.write("## Escolha sua paleta de cores")
-
-    # Cores principais para escolher tons
     cores_principais = {
         "Vermelho": ["#FFEBEE", "#EF9A9A", "#E53935", "#B71C1C"],
         "Verde": ["#E8F5E9", "#A5D6A7", "#43A047", "#1B5E20"],
@@ -44,13 +63,10 @@ else:
         "Cinza": ["#FAFAFA", "#BDBDBD", "#616161", "#212121"],
         "Preto": ["#000000", "#212121", "#424242", "#616161"],
         "Branco": ["#FFFFFF", "#F5F5F5", "#EEEEEE", "#E0E0E0"],
-        "Bege": ["#7A5C3C", "#B08E6B", "#E8C39E" , "#F5E1CE" , "#FFFFFF"]
+        "Bege": ["#7A5C3C", "#B08E6B", "#E8C39E", "#F5E1CE", "#FFFFFF"]
     }
 
-    # Seleção da cor principal
     cor_principal = st.selectbox("Escolha a cor principal:", list(cores_principais.keys()))
-
-    # Mostrar tons para escolher (checkbox múltipla)
     tons = cores_principais[cor_principal]
     st.write("### Escolha um ou mais tons:")
     tons_selecionados = []
@@ -62,7 +78,6 @@ else:
             if selecionado:
                 tons_selecionados.append(cor)
 
-    # Combinação de paletas: o cliente pode adicionar outra cor
     adicionar_mais = st.checkbox("Adicionar outra cor principal para combinar?")
     if adicionar_mais:
         cor2 = st.selectbox("Escolha a segunda cor principal:", [c for c in cores_principais.keys() if c != cor_principal])
@@ -100,7 +115,7 @@ recorrencia = st.selectbox("Com que frequência você quer os posts?", [
     "1x por semana", "2x por semana", "3x por semana", "Diariamente", "Outro"
 ])
 
-# ---- GERADOR DE PDF ----
+# ---- FUNÇÕES PARA PDF ----
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2 ,4))
@@ -118,10 +133,13 @@ def gerar_pdf(dados, nome_arquivo, logo_file):
     pdf.cell(0, 10, "Informações do Cliente - Social Mídia", ln=True, align="C")
     pdf.ln(10)
 
-    # Logo
     if logo_file:
-        # Como o arquivo vem do upload, precisamos salvar temporariamente ou usar BytesIO
-        pdf.image(logo_file, x=10, y=20, w=40)
+        if isinstance(logo_file, BytesIO):
+            with open("temp_logo_for_pdf.png", "wb") as f:
+                f.write(logo_file.getbuffer())
+            pdf.image("temp_logo_for_pdf.png", x=10, y=20, w=40)
+        else:
+            pdf.image(logo_file, x=10, y=20, w=40)
         pdf.ln(45)
     else:
         pdf.ln(10)
@@ -130,7 +148,6 @@ def gerar_pdf(dados, nome_arquivo, logo_file):
     for chave, valor in dados.items():
         if chave == "Cores da paleta" and valor:
             pdf.cell(0, 10, f"{chave}:", ln=True)
-            # Mostrar quadradinhos coloridos das cores
             x_start = pdf.get_x()
             y_start = pdf.get_y()
             box_size = 10
@@ -152,7 +169,7 @@ if st.button("Enviar formulário"):
         st.error("Escolha pelo menos um tom de cor na paleta.")
     else:
         data = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        nome_pdf = f"{nome.replace(' ', '')}{data}.pdf"
+        nome_pdf = f"{nome.replace(' ', '')}_{data}.pdf"
 
         cores_para_pdf = []
         if tem_paleta == "Sim":
@@ -174,17 +191,10 @@ if st.button("Enviar formulário"):
             "Recorrência": recorrencia
         }
 
-        # Preparar logo para PDF
-        logo_path = None
-        if logo_img is not None:
-            logo_bytes = logo_img.getvalue()
-            logo_path = f"temp_logo_{data}.png"
-            with open(logo_path, "wb") as f:
-                f.write(logo_bytes)
-
+        logo_path = BytesIO(logo_img.read()) if logo_img else None
         gerar_pdf(dados, nome_pdf, logo_path)
 
-        # Apagar arquivo temporário depois do PDF? (Opcional)
-
         st.success("✅ Formulário enviado e PDF gerado com sucesso!")
-        st.download_button("📄 Baixar PDF agora", data=open(nome_pdf, "rb").read(), file_name=nome_pdf, mime="application/pdf")
+        with open(nome_pdf, "rb") as file:
+            st.download_button("📄 Baixar PDF agora", data=file, file_name=nome_pdf, mime="application/pdf")
+
