@@ -44,6 +44,7 @@ else:
         "Cinza": ["#FAFAFA", "#BDBDBD", "#616161", "#212121"],
         "Preto": ["#000000", "#212121", "#424242", "#616161"],
         "Branco": ["#FFFFFF", "#F5F5F5", "#EEEEEE", "#E0E0E0"],
+        "Bege": ["#7A5C3C", "#B08E6B", "#E8C39E" , "#F5E1CE" , "#FFFFFF"]
     }
 
     # Seleção da cor principal
